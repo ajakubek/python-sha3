@@ -1,0 +1,29 @@
+python-sha3 - SHA-3 extension for CPython
+=========================================
+
+This extension module for CPython provides SHA-3 cryptographic function (also
+known as Keccak).
+It can be used with Python 2.x (from 2.4 upwards) and 3.x versions.
+
+Four classes with different digest sizes are currently available:
+ - sha3.sha224 - SHA-3 224 bits
+ - sha3.sha256 - SHA-3 256 bits
+ - sha3.sha384 - SHA-3 384 bits
+ - sha3.sha512 - SHA-3 512 bits
+
+The interface of these classes follows conventions from Python's builtin
+hashlib module.
+
+Internally python-sha3 uses the optimized version of the Keccak algorithm,
+written and released into the public domain by its designers.
+Both 32-bit and 64-bit architectures are supported (tested on x86 and x86_64
+architectures).
+
+The most current development version is available at:
+https://github.com/ajakubek/python-sha3/
+
+Bugs can be reported at:
+https://github.com/ajakubek/python-sha3/issues/
+
+This software is distributed under the MIT license.
+Please see the LICENSE file included in the package for details.
