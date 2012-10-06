@@ -5,6 +5,18 @@ VERSION='0.1'
 
 import platform
 from distutils.core import setup, Extension
+import sys
+
+defines = []
+
+filtered_argv = []
+for arg in sys.argv:
+    if arg == '--enable-threads':
+        defines.append(('ENABLE_THREADS', '1'))
+    else:
+        filtered_argv.append(arg)
+sys.argv = filtered_argv
+
 
 sources = [ 'src/sha3_module.c',
             'src/sha3_types.c',
@@ -26,7 +38,7 @@ setup(name='',
       download_url='http://pypi.python.org/pypi/sha3/%s' % VERSION,
       license='MIT',
       keywords='SHA-3, Keccak, hash',
-      ext_modules=[Extension('sha3', sources)],
+      ext_modules=[Extension('sha3', sources, define_macros=defines)],
       classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',

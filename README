@@ -19,6 +19,12 @@ written and released into the public domain by its designers.
 Both 32-bit and 64-bit architectures are supported (tested on x86 and x86_64
 architectures).
 
+Like hashlib, python-sha3 has optional support for concurrency.
+To enable concurrent hashing, pass '--enable-threads' when building the module
+with setup.py.
+When built with multithreading support, python-sha3 will release the GIL
+during hash calculations and use a per object, fine-grained lock instead.
+
 The most current development version is available at:
 https://github.com/ajakubek/python-sha3/
 

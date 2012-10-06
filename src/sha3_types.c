@@ -3,10 +3,14 @@
  */
 
 #include <Python.h>
+#ifdef ENABLE_THREADS
+#include "pythread.h"
+#endif
 #include <structmember.h>
 #include "keccak/KeccakNISTInterface.h"
 
-#define MAX_HASH_SIZE   (512)
+#define MAX_HASH_SIZE           (512)
+#define MIN_CONCURRENT_SIZE     (4096)
 
 #ifndef Py_TYPE
 #define Py_TYPE(o) ((o)->ob_type)
@@ -28,12 +32,19 @@ typedef struct
     hashState hash_state;
     Py_ssize_t digest_size;
     Py_ssize_t block_size;
+#ifdef ENABLE_THREADS
+    PyThread_type_lock lock;
+#endif
 } SHAObject;
 
 
-static void sha_dealloc(PyObject* self)
+static void sha_dealloc(SHAObject* self)
 {
-    self->ob_type->tp_free(self);
+#ifdef ENABLE_THREADS
+    if (self->lock != NULL)
+        PyThread_free_lock(self->lock);
+#endif
+    Py_TYPE(self)->tp_free(self);
 }
 
 static PyObject* sha224_new(PyTypeObject* type,
@@ -48,6 +59,9 @@ static PyObject* sha224_new(PyTypeObject* type,
 
     self->digest_size = 224;
     self->block_size = 1152;
+#ifdef ENABLE_THREADS
+    self->lock = NULL;
+#endif
 
     if (Init(&self->hash_state, 224) != SUCCESS)
         return NULL;
@@ -67,6 +81,9 @@ static PyObject* sha256_new(PyTypeObject* type,
 
     self->digest_size = 256;
     self->block_size = 1088;
+#ifdef ENABLE_THREADS
+    self->lock = NULL;
+#endif
 
     if (Init(&self->hash_state, 256) != SUCCESS)
         return NULL;
@@ -86,6 +103,9 @@ static PyObject* sha384_new(PyTypeObject* type,
 
     self->digest_size = 384;
     self->block_size = 832;
+#ifdef ENABLE_THREADS
+    self->lock = NULL;
+#endif
 
     if (Init(&self->hash_state, 384) != SUCCESS)
         return NULL;
@@ -105,6 +125,9 @@ static PyObject* sha512_new(PyTypeObject* type,
 
     self->digest_size = 512;
     self->block_size = 576;
+#ifdef ENABLE_THREADS
+    self->lock = NULL;
+#endif
 
     if (Init(&self->hash_state, 512) != SUCCESS)
         return NULL;
@@ -123,16 +146,36 @@ static int sha_init(SHAObject* self, PyObject* args, PyObject* kwds)
     return 0;
 }
 
-static PyObject* sha_update(PyObject* self, PyObject* other)
+static PyObject* sha_update(SHAObject* self, PyObject* other)
 {
-    SHAObject* sha = (SHAObject*)self;
     unsigned char* buffer;
     Py_ssize_t size;
+    HashReturn result;
 
     if (!PyArg_ParseTuple(other, "s#:update", &buffer, &size))
         return NULL;
 
-    if (Update(&sha->hash_state, buffer, (DataLength)size * 8) != SUCCESS)
+#if ENABLE_THREADS
+    if (self->lock == NULL && size >= MIN_CONCURRENT_SIZE)
+        self->lock = PyThread_allocate_lock();
+
+    if (self->lock != NULL && size >= MIN_CONCURRENT_SIZE)
+    {
+        Py_BEGIN_ALLOW_THREADS
+        PyThread_acquire_lock(self->lock, 1);
+
+        result = Update(&self->hash_state, buffer, (DataLength)size * 8);
+
+        PyThread_release_lock(self->lock);
+        Py_END_ALLOW_THREADS
+    }
+    else
+        result = Update(&self->hash_state, buffer, (DataLength)size * 8);
+#else
+    result = Update(&self->hash_state, buffer, (DataLength)size * 8);
+#endif
+
+    if (result != SUCCESS)
     {
         PyErr_SetString(PyExc_RuntimeError, "failed to update hash state");
         return NULL;
@@ -145,11 +188,36 @@ static PyObject* sha_digest(SHAObject* self)
 {
     char digest[MAX_HASH_SIZE / 8];
     hashState tmp;
+    HashReturn result;
 
     assert(self->digest_size <= MAX_HASH_SIZE);
 
+#if ENABLE_THREADS
+    /* Use lock if it's already created, but don't create a new one.
+     * This is usually the last method called.
+     */
+    if (self->lock != NULL)
+    {
+        Py_BEGIN_ALLOW_THREADS
+        PyThread_acquire_lock(self->lock, 1);
+
+        memcpy(&tmp, &self->hash_state, sizeof(hashState));
+        result = Final(&tmp, (BitSequence*)digest);
+
+        PyThread_release_lock(self->lock);
+        Py_END_ALLOW_THREADS
+    }
+    else
+    {
+        memcpy(&tmp, &self->hash_state, sizeof(hashState));
+        result = Final(&tmp, (BitSequence*)digest);
+    }
+#else
     memcpy(&tmp, &self->hash_state, sizeof(hashState));
-    if (Final(&tmp, (BitSequence*)digest) != SUCCESS)
+    result = Final(&tmp, (BitSequence*)digest);
+#endif
+
+    if (result!= SUCCESS)
     {
         PyErr_SetString(PyExc_RuntimeError,
             "failed to finalize hash calculation");
@@ -172,11 +240,36 @@ static PyObject* sha_hexdigest(SHAObject* self)
     char *p;
     int digest_size, i;
     hashState tmp;
+    HashReturn result;
 
     assert(self->digest_size <= MAX_HASH_SIZE);
 
+#if ENABLE_THREADS
+    /* Use lock if it's already created, but don't create a new one.
+     * This is usually the last method called.
+     */
+    if (self->lock != NULL)
+    {
+        Py_BEGIN_ALLOW_THREADS
+        PyThread_acquire_lock(self->lock, 1);
+
+        memcpy(&tmp, &self->hash_state, sizeof(hashState));
+        result = Final(&tmp, (BitSequence*)digest);
+
+        PyThread_release_lock(self->lock);
+        Py_END_ALLOW_THREADS
+    }
+    else
+    {
+        memcpy(&tmp, &self->hash_state, sizeof(hashState));
+        result = Final(&tmp, (BitSequence*)digest);
+    }
+#else
     memcpy(&tmp, &self->hash_state, sizeof(hashState));
-    if (Final(&tmp, digest) != SUCCESS)
+    result = Final(&tmp, (BitSequence*)digest);
+#endif
+
+    if (result != SUCCESS)
     {
         PyErr_SetString(PyExc_RuntimeError,
             "failed to finalize hash calculation");
@@ -277,7 +370,7 @@ static PyMemberDef SHAMembers[] =
         "sha3.sha"#bits,                /* tp_name */           \
         sizeof(SHAObject),              /* tp_basicsize */      \
         0,                              /* tp_itemsize */       \
-        sha_dealloc,                    /* tp_dealloc */        \
+        (destructor)sha_dealloc,        /* tp_dealloc */        \
         0,                              /* tp_print */          \
         0,                              /* tp_getattr */        \
         0,                              /* tp_setattr */        \
