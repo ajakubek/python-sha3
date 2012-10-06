@@ -44,7 +44,7 @@ static void sha_dealloc(SHAObject* self)
     if (self->lock != NULL)
         PyThread_free_lock(self->lock);
 #endif
-    Py_TYPE(self)->tp_free(self);
+    PyObject_Del(self);
 }
 
 static PyObject* sha224_new(PyTypeObject* type,
@@ -53,7 +53,7 @@ static PyObject* sha224_new(PyTypeObject* type,
 {
     SHAObject* self;
 
-    self = (SHAObject*)type->tp_alloc(type, 0);
+    self = PyObject_New(SHAObject, type);
     if (self == NULL)
         return NULL;
 
@@ -75,7 +75,7 @@ static PyObject* sha256_new(PyTypeObject* type,
 {
     SHAObject* self;
 
-    self = (SHAObject*)type->tp_alloc(type, 0);
+    self = PyObject_New(SHAObject, type);
     if (self == NULL)
         return NULL;
 
@@ -97,7 +97,7 @@ static PyObject* sha384_new(PyTypeObject* type,
 {
     SHAObject* self;
 
-    self = (SHAObject*)type->tp_alloc(type, 0);
+    self = PyObject_New(SHAObject, type);
     if (self == NULL)
         return NULL;
 
@@ -119,7 +119,7 @@ static PyObject* sha512_new(PyTypeObject* type,
 {
     SHAObject* self;
 
-    self = (SHAObject*)type->tp_alloc(type, 0);
+    self = PyObject_New(SHAObject, type);
     if (self == NULL)
         return NULL;
 
