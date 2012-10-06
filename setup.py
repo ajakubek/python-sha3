@@ -28,7 +28,8 @@ if '64bit' not in platform.architecture()[0]:
 else:
     sources += [ 'src/keccak/KeccakF-1600-opt64.c' ]
 
-setup(name='',
+
+setup(name='python-sha3',
       description='SHA-3 extension',
       long_description=open('README').read(),
       author='Adam Jakubek',
