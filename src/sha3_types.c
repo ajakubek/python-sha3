@@ -126,7 +126,7 @@ static int sha_init(SHAObject* self, PyObject* args, PyObject* kwds)
 static PyObject* sha_update(PyObject* self, PyObject* other)
 {
     SHAObject* sha = (SHAObject*)self;
-    char* buffer;
+    unsigned char* buffer;
     Py_ssize_t size;
 
     if (!PyArg_ParseTuple(other, "s#:update", &buffer, &size))
@@ -143,13 +143,13 @@ static PyObject* sha_update(PyObject* self, PyObject* other)
 
 static PyObject* sha_digest(SHAObject* self)
 {
-    unsigned char digest[MAX_HASH_SIZE / 8];
+    char digest[MAX_HASH_SIZE / 8];
     hashState tmp;
 
     assert(self->digest_size <= MAX_HASH_SIZE);
 
     memcpy(&tmp, &self->hash_state, sizeof(hashState));
-    if (Final(&tmp, digest) != SUCCESS)
+    if (Final(&tmp, (BitSequence*)digest) != SUCCESS)
     {
         PyErr_SetString(PyExc_RuntimeError,
             "failed to finalize hash calculation");

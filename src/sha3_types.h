@@ -6,6 +6,6 @@
 #define SHA3_TYPES_H
 
 int  sha3_init_types(void);
-void sha3_register(PyObject* module);
+void sha3_register_types(PyObject* module);
 
 #endif /* SHA3_TYPES_H */
