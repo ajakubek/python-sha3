@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import binascii
-import gc
 import unittest
 from sha3 import sha224, sha256, sha384, sha512
-
-gc.set_debug(gc.DEBUG_UNCOLLECTABLE | gc.DEBUG_STATS)
 
 def digest2hex(digest):
     return binascii.hexlify(digest).decode()
