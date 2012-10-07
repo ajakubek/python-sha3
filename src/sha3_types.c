@@ -9,7 +9,7 @@
 #include <structmember.h>
 #include "keccak/KeccakNISTInterface.h"
 
-#define MAX_HASH_SIZE           (512)
+#define MAX_HASH_BYTES          (512 / 8)
 #define MIN_CONCURRENT_SIZE     (4096)
 
 #ifndef Py_TYPE
@@ -32,6 +32,8 @@ typedef struct
     hashState hash_state;
     Py_ssize_t digest_size;
     Py_ssize_t block_size;
+    Py_ssize_t rate;
+    Py_ssize_t capacity;
 #ifdef ENABLE_THREADS
     PyThread_type_lock lock;
 #endif
@@ -57,8 +59,10 @@ static PyObject* sha224_new(PyTypeObject* type,
     if (self == NULL)
         return NULL;
 
-    self->digest_size = 224;
-    self->block_size = 1152;
+    self->digest_size = 224 / 8;
+    self->block_size = 1152 / 8;
+    self->rate = 1152;
+    self->capacity = 448;
 #ifdef ENABLE_THREADS
     self->lock = NULL;
 #endif
@@ -79,8 +83,10 @@ static PyObject* sha256_new(PyTypeObject* type,
     if (self == NULL)
         return NULL;
 
-    self->digest_size = 256;
-    self->block_size = 1088;
+    self->digest_size = 256 / 8;
+    self->block_size = 1088 / 8;
+    self->rate = 1088;
+    self->capacity = 512;
 #ifdef ENABLE_THREADS
     self->lock = NULL;
 #endif
@@ -101,8 +107,10 @@ static PyObject* sha384_new(PyTypeObject* type,
     if (self == NULL)
         return NULL;
 
-    self->digest_size = 384;
-    self->block_size = 832;
+    self->digest_size = 384 / 8;
+    self->block_size = 832 / 8;
+    self->rate = 832;
+    self->capacity = 768;
 #ifdef ENABLE_THREADS
     self->lock = NULL;
 #endif
@@ -123,8 +131,10 @@ static PyObject* sha512_new(PyTypeObject* type,
     if (self == NULL)
         return NULL;
 
-    self->digest_size = 512;
-    self->block_size = 576;
+    self->digest_size = 512 / 8;
+    self->block_size = 576 / 8;
+    self->rate = 576;
+    self->capacity = 1024;
 #ifdef ENABLE_THREADS
     self->lock = NULL;
 #endif
@@ -137,7 +147,7 @@ static PyObject* sha512_new(PyTypeObject* type,
 
 static int sha_init(SHAObject* self, PyObject* args, PyObject* kwds)
 {
-    if (Init(&self->hash_state, (int)self->digest_size) != SUCCESS)
+    if (Init(&self->hash_state, (int)self->digest_size * 8) != SUCCESS)
     {
         PyErr_SetString(PyExc_RuntimeError, "failed to initialize hash state");
         return -1;
@@ -186,11 +196,11 @@ static PyObject* sha_update(SHAObject* self, PyObject* other)
 
 static PyObject* sha_digest(SHAObject* self)
 {
-    char digest[MAX_HASH_SIZE / 8];
+    char digest[MAX_HASH_BYTES];
     hashState tmp;
     HashReturn result;
 
-    assert(self->digest_size <= MAX_HASH_SIZE);
+    assert(self->digest_size <= MAX_HASH_BYTES);
 
 #if ENABLE_THREADS
     /* Use lock if it's already created, but don't create a new one.
@@ -225,9 +235,9 @@ static PyObject* sha_digest(SHAObject* self)
     }
 
 #if PY_MAJOR_VERSION >=3
-    return PyBytes_FromStringAndSize(digest, (int)self->digest_size / 8);
+    return PyBytes_FromStringAndSize(digest, self->digest_size);
 #else
-    return PyString_FromStringAndSize(digest, (int)self->digest_size / 8);
+    return PyString_FromStringAndSize(digest, self->digest_size);
 #endif
 }
 
@@ -235,14 +245,14 @@ static PyObject* sha_hexdigest(SHAObject* self)
 {
     static const char* DIGITS = "0123456789abcdef";
 
-    unsigned char digest[MAX_HASH_SIZE / 8];
-    char hex_digest[MAX_HASH_SIZE / 8 * 2];
+    unsigned char digest[MAX_HASH_BYTES];
+    char hex_digest[MAX_HASH_BYTES * 2];
     char *p;
-    int digest_size, i;
+    int i;
     hashState tmp;
     HashReturn result;
 
-    assert(self->digest_size <= MAX_HASH_SIZE);
+    assert(self->digest_size <= MAX_HASH_BYTES);
 
 #if ENABLE_THREADS
     /* Use lock if it's already created, but don't create a new one.
@@ -276,19 +286,17 @@ static PyObject* sha_hexdigest(SHAObject* self)
         return NULL;
     }
  
-    digest_size = (int)self->digest_size / 8;
-
     p = hex_digest;
-    for (i = 0; i < digest_size; ++i)
+    for (i = 0; i < self->digest_size; ++i)
     {
         *p++ = DIGITS[(digest[i] / 16) & 0xf];
         *p++ = DIGITS[(digest[i] % 16) & 0xf];
     }
 
 #if PY_MAJOR_VERSION >=3
-    return PyUnicode_FromStringAndSize(hex_digest, digest_size * 2);
+    return PyUnicode_FromStringAndSize(hex_digest, self->digest_size * 2);
 #else
-    return PyString_FromStringAndSize(hex_digest, digest_size * 2);
+    return PyString_FromStringAndSize(hex_digest, self->digest_size * 2);
 #endif
 }
 
@@ -311,7 +319,12 @@ static PyObject* sha_copy(PyObject* self)
 
     memcpy(&new_sha->hash_state, &sha_self->hash_state, sizeof(hashState));
     new_sha->digest_size = sha_self->digest_size;
-    new_sha->block_size = sha_self->digest_size;
+    new_sha->block_size = sha_self->block_size;
+    new_sha->rate = sha_self->rate;
+    new_sha->capacity = sha_self->capacity;
+#ifdef ENABLE_THREADS
+    new_sha->lock = NULL;
+#endif
 
     return (PyObject*)new_sha;
 }
@@ -322,10 +335,10 @@ static PyObject* sha_repr(PyObject* self)
 
 #if PY_MAJOR_VERSION >=3
     str = PyUnicode_FromFormat("<%s HASH object @ %p>",
-        self->ob_type->tp_name, self);
+        Py_TYPE(self)->tp_name, self);
 #else
     str = PyString_FromFormat("<%s HASH object @ %p>",
-        self->ob_type->tp_name, self);
+        Py_TYPE(self)->tp_name, self);
 #endif
     if (str == NULL)
     {
@@ -355,6 +368,10 @@ static PyMemberDef SHAMembers[] =
       "The size of the resulting hash in bytes." },
     { "block_size", T_INT, offsetof(SHAObject, block_size), READONLY,
       "The internal block size of the hash algorithm in bytes." },
+    { "rate", T_INT, offsetof(SHAObject, rate), READONLY,
+      "The rate of sponge function in bits." },
+    { "capacity", T_INT, offsetof(SHAObject, capacity), READONLY,
+      "The capacity of sponge function in bits." },
     { NULL },   /* sentinel */
 };
 

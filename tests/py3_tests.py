@@ -23,9 +23,19 @@ class test_sha3(unittest.TestCase):
 
     def test_digest_size(self):
         self.assertEqual(self.h.digest_size, self.digest_size)
+        self.assertEqual(len(self.h.digest()), self.h.digest_size)
+
+    def test_hexdigest_size(self):
+        self.assertEqual(len(self.h.hexdigest()), self.digest_size * 2)
 
     def test_block_size(self):
         self.assertEqual(self.h.block_size, self.block_size)
+
+    def test_rate(self):
+        self.assertEqual(self.h.rate, self.rate)
+
+    def test_capacity(self):
+        self.assertEqual(self.h.capacity, self.capacity)
 
     def test_invalid_message(self):
         invalid_types = [None, 0, 1.0, [], set()]
@@ -75,6 +85,10 @@ class test_sha3(unittest.TestCase):
         h_orig_digest = self.h.hexdigest()
         copy_orig_digest = copy.hexdigest()
         self.assertEqual(h_orig_digest, copy_orig_digest)
+        self.assertEqual(self.h.digest_size, copy.digest_size)
+        self.assertEqual(self.h.block_size, copy.block_size)
+        self.assertEqual(self.h.rate, copy.rate)
+        self.assertEqual(self.h.capacity, copy.capacity)
         for message, hex_digest in self.vectors_extended:
             self.h.update(message)
             self.assertEqual(copy.hexdigest(), copy_orig_digest)
@@ -88,8 +102,10 @@ class test_sha_224(test_sha3):
     def setUp(self):
         self.sha = sha224
         self.h = sha224()
-        self.digest_size = 224
-        self.block_size = 1152
+        self.digest_size = 224 / 8
+        self.block_size = 1152 / 8
+        self.rate = 1152
+        self.capacity = 448
         self.empty_hexdigest = 'f71837502ba8e10837bdd8d365adb85591895602fc552b48b7390abd'
         self.vectors = [
             ('', 'f71837502ba8e10837bdd8d365adb85591895602fc552b48b7390abd'),
@@ -111,8 +127,10 @@ class test_sha_256(test_sha3):
     def setUp(self):
         self.sha = sha256
         self.h = sha256()
-        self.digest_size = 256
-        self.block_size = 1088
+        self.digest_size = 256 / 8
+        self.block_size = 1088 / 8
+        self.rate = 1088
+        self.capacity = 512
         self.empty_hexdigest = 'c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'
         self.vectors = [
             ('', 'c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'),
@@ -134,8 +152,10 @@ class test_sha_384(test_sha3):
     def setUp(self):
         self.sha = sha384
         self.h = sha384()
-        self.digest_size = 384
-        self.block_size = 832
+        self.digest_size = 384 / 8
+        self.block_size = 832 / 8
+        self.rate = 832
+        self.capacity = 768
         self.empty_hexdigest = '2c23146a63a29acf99e73b88f8c24eaa7dc60aa771780ccc006afbfa8fe2479b2dd2b21362337441ac12b515911957ff'
         self.vectors = [
             ('', '2c23146a63a29acf99e73b88f8c24eaa7dc60aa771780ccc006afbfa8fe2479b2dd2b21362337441ac12b515911957ff'),
@@ -158,8 +178,10 @@ class test_sha_512(test_sha3):
     def setUp(self):
         self.sha = sha512
         self.h = sha512()
-        self.digest_size = 512
-        self.block_size = 576
+        self.digest_size = 512 / 8
+        self.block_size = 576 / 8
+        self.rate = 576
+        self.capacity = 1024
         self.empty_hexdigest = '0eab42de4c3ceb9235fc91acffe746b29c29a8c366b7c60e4e67c466f36a4304c00fa9caf9d87976ba469bcbe06713b435f091ef2769fb160cdab33d3670680e'
         self.vectors = [
             ('', '0eab42de4c3ceb9235fc91acffe746b29c29a8c366b7c60e4e67c466f36a4304c00fa9caf9d87976ba469bcbe06713b435f091ef2769fb160cdab33d3670680e'),
