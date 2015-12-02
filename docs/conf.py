@@ -42,7 +42,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'python-sha3'
-copyright = u'2012, Adam Jakubek'
+copyright = u'2012-2015, Adam Jakubek'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

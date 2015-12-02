@@ -164,7 +164,7 @@ Copyright
 
 The :mod:`python-sha3` module is distributed under the MIT license:
 
-  | Copyright (c) 2012 Adam Jakubek
+  | Copyright (c) 2012-2015 Adam Jakubek
   |
   | Permission is hereby granted, free of charge, to any person obtaining
   | a copy of this software and associated documentation files (the
