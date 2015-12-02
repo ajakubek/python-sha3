@@ -2,7 +2,8 @@
  * Released under the MIT license (see attached LICENSE file).
  */
 
-#include <Python.h>
+#include "common.h"
+
 #ifdef ENABLE_THREADS
 #include "pythread.h"
 #endif
@@ -14,10 +15,6 @@
 
 #ifndef Py_TYPE
 #define Py_TYPE(o) ((o)->ob_type)
-#endif
-
-#if PY_VERSION_HEX < 0x02050000
-typedef int Py_ssize_t;
 #endif
 
 

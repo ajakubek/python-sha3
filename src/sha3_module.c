@@ -2,8 +2,7 @@
  * Released under the MIT license (see attached LICENSE file).
  */
 
-#include <Python.h>
-
+#include "common.h"
 #include "sha3_types.h"
 
 static PyMethodDef sha3_methods[] =
