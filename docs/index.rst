@@ -3,16 +3,35 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-:mod:`python-sha3` --- SHA-3 extension module for Python
-========================================================
+:mod:`python-sha3` --- SHA-3 (NIST competition version) extension for Python
+============================================================================
 
 .. module:: sha3
 
 .. moduleauthor:: Adam Jakubek <ajakubek@gmail.com>
 
-This extension for CPython provides SHA-3 cryptographic function (also known
-as Keccak). For more information on the Keccak function, please visit
+Warning!
+--------
+
+**This package implements the original Keccak hash function as selected by NIST
+in the 2012 competition. It is incompatible with the final SHA-3 standard.**
+
+On April 7, 2014, SHA-3 draft standard was released with a change that
+introduced additional padding of input data. The updated specification became
+final as FIPS 202 on August 5, 2015.
+This Python module does not include the modification and will produce different
+hashes!
+
+There are no plans to update this module to the latest revision of the
+standard. It will remain compliant with the original Keccak proposal.
+To calculate actual SHA-3 hashes, please consider migrating your code to a
+FIPS 202 implementation (like https://github.com/bjornedstrom/python-sha3).
+
+For more information on the Keccak function, please visit
 http://keccak.noekeon.org/
+
+Description
+===========
 
 The interface of this module follows conventions from Python's builtin
 :mod:`hashlib` module.

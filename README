@@ -1,9 +1,23 @@
-python-sha3 - SHA-3 extension for CPython
-=========================================
+python-sha3 - SHA-3 (NIST competition version) extension for CPython
+====================================================================
 
-This extension module for CPython provides SHA-3 cryptographic function (also
-known as Keccak).
-It can be used with Python 2.x (from 2.4 upwards) and 3.x versions.
+# Warning!
+
+**This package implements the original Keccak hash function as selected by NIST
+in 2012. It is incompatible with the final SHA-3 standard.**
+
+On April 7, 2014, SHA-3 draft standard was released with a change that
+introduced additional padding of input data. The updated specification became
+final as FIPS 202 on August 5, 2015.
+This Python module does not include the modification and will produce different
+hashes!
+
+There are no plans to update this module to the latest revision of the
+standard. It will remain compliant with the original Keccak proposal.
+To calculate actual SHA-3 hashes, please consider migrating your code to a
+FIPS 202 implementation (like https://github.com/bjornedstrom/python-sha3).
+
+This extension module can be used with Python 2.x (from 2.4 upwards) and 3.x.
 
 Four classes with different digest sizes are currently available:
  - sha3.sha224 - SHA-3 224 bits
